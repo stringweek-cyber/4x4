@@ -348,6 +348,7 @@
         const SHOT_INTERVAL = 4; // 초
         const PREP_TIME = 5;     // 준비 시간(초)
         let fsIntervalId = null;
+        let captureAborted = false;
 
         // 전체화면 촬영 진입
         function startCaptureSequence() {
@@ -355,65 +356,76 @@
                 showToast("📸 이미 6장의 촬영을 마쳤습니다. 필요하면 초기화 후 다시 촬영해주세요!");
                 return;
             }
+            captureAborted = false;
             const fsCamera = document.getElementById('fullscreen-camera');
             const fsVideo = document.getElementById('fullscreen-video');
             fsCamera.classList.add('active');
             if (stream) fsVideo.srcObject = stream;
-
-            // 5초 준비 카운트다운 후 촬영 시작
             runPrepCountdown();
         }
 
-        // 5초 준비 카운트다운
+        // 5초 준비 카운트다운 → 이후 매 촬영마다 4초 카운트다운
         function runPrepCountdown() {
             const fsCountdown = document.getElementById('fullscreen-countdown');
             const fsStatus = document.getElementById('fullscreen-status');
             fsStatus.innerText = '📷 준비하세요!';
             fsCountdown.classList.remove('hidden');
-
             let count = PREP_TIME;
             fsCountdown.innerText = count;
-
             const interval = setInterval(() => {
+                if (captureAborted) { clearInterval(interval); return; }
                 count--;
                 if (count > 0) {
                     fsCountdown.innerText = count;
                 } else {
                     clearInterval(interval);
                     fsCountdown.classList.add('hidden');
-                    // 준비 완료 → 첫 촬영 바로 실행 후 4초 간격 반복
-                    runShot();
-                    fsIntervalId = setInterval(() => {
-                        if (capturedPhotos.length >= MAX_SHOTS) {
-                            clearInterval(fsIntervalId);
-                            fsIntervalId = null;
-                            setTimeout(() => {
-                                closeFullscreenCamera();
-                                showToast("🎉 6장 촬영 완료! 최고의 4장을 선택해 보세요.");
-                            }, 600);
-                        } else {
-                            runShot();
-                        }
-                    }, SHOT_INTERVAL * 1000);
+                    runShotWithCountdown();
                 }
             }, 1000);
         }
 
-        // 1장 촬영 실행
-        function runShot() {
+        // 촬영 1회: 4→3→2→1 카운트다운 후 셔터, 재귀 반복
+        function runShotWithCountdown() {
+            if (captureAborted || capturedPhotos.length >= MAX_SHOTS) return;
+            const fsCountdown = document.getElementById('fullscreen-countdown');
             const fsStatus = document.getElementById('fullscreen-status');
-            fsStatus.innerText = `📸 ${capturedPhotos.length + 1} / ${MAX_SHOTS}`;
-            shutterAction();
+            const shotNum = capturedPhotos.length + 1;
+            fsStatus.innerText = `📸 ${shotNum} / ${MAX_SHOTS}`;
+            fsCountdown.classList.remove('hidden');
+            let count = SHOT_INTERVAL;
+            fsCountdown.innerText = count;
+            const interval = setInterval(() => {
+                if (captureAborted) { clearInterval(interval); return; }
+                count--;
+                if (count > 0) {
+                    fsCountdown.innerText = count;
+                } else {
+                    clearInterval(interval);
+                    fsCountdown.classList.add('hidden');
+                    shutterAction(() => {
+                        if (capturedPhotos.length >= MAX_SHOTS) {
+                            setTimeout(() => {
+                                closeFullscreenCamera();
+                                showToast("🎉 6장 촬영 완료! 최고의 4장을 선택해 보세요.");
+                            }, 400);
+                        } else {
+                            runShotWithCountdown();
+                        }
+                    });
+                }
+            }, 1000);
         }
 
         // 전체화면 닫기
         function closeFullscreenCamera() {
+            captureAborted = true;
             if (fsIntervalId) { clearInterval(fsIntervalId); fsIntervalId = null; }
             const fsCamera = document.getElementById('fullscreen-camera');
             fsCamera.classList.remove('active');
         }
 
-        function shutterAction() {
+        function shutterAction(callback) {
             const fsFlash = document.getElementById('fullscreen-flash');
             const fsVideo = document.getElementById('fullscreen-video');
             fsFlash.style.opacity = '1';
@@ -428,10 +440,11 @@
                 tempCtx.scale(-1, 1);
                 tempCtx.drawImage(fsVideo, 0, 0, tempCanvas.width, tempCanvas.height);
                 const img = new Image();
-                img.onload = () => addCapturedPhoto(img);
+                img.onload = () => { addCapturedPhoto(img); if (callback) callback(); };
                 img.src = tempCanvas.toDataURL('image/png');
             } else {
                 createSingleMockPhoto();
+                if (callback) setTimeout(callback, 100);
             }
         }
 
@@ -476,6 +489,7 @@
         }
 
         function resetCapturedPhotos() {
+            captureAborted = true;
             closeFullscreenCamera();
             capturedPhotos = [];
             selectedIndices = [];
@@ -562,7 +576,13 @@
             if (selectedIndices.length !== 4) return;
             const activeConfig = themes[activeTheme];
             const cWidth = 1000;
-            const cHeight = 1420;
+            const photoW = 440;
+            const photoH = 550;
+            const startX = 40;
+            const startY = 80;
+            const gapX = 40;
+            const gapY = 50;
+            const cHeight = startY + 2 * photoH + gapY + 80 + 56 + 60; // 동적 높이
             canvas.width = cWidth;
             canvas.height = cHeight;
             const ctx = canvas.getContext('2d');
@@ -570,16 +590,10 @@
             ctx.fillStyle = activeConfig.bg;
             ctx.fillRect(0, 0, cWidth, cHeight);
 
-            ctx.strokeStyle = activeConfig.text;
-            ctx.lineWidth = 16;
-            ctx.strokeRect(8, 8, cWidth - 16, cHeight - 16);
-
-            const photoW = 440;
-            const photoH = 550;
-            const startX = 40;
-            const startY = 100;
-            const gapX = 40;
-            const gapY = 40;
+            // 바깥 테두리 최소화 (1px)
+            ctx.strokeStyle = activeConfig.border;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(0.5, 0.5, cWidth - 1, cHeight - 1);
 
             selectedIndices.forEach((photoIndex, idx) => {
                 const img = capturedPhotos[photoIndex];
@@ -588,8 +602,8 @@
                 const currentX = startX + col * (photoW + gapX);
                 const currentY = startY + row * (photoH + gapY);
 
-                ctx.strokeStyle = activeConfig.text;
-                ctx.lineWidth = 4;
+                ctx.strokeStyle = activeConfig.border;
+                ctx.lineWidth = 2;
 
                 const imgAspect = img.width / img.height;
                 const targetAspect = photoW / photoH;
@@ -607,19 +621,12 @@
                 }
                 ctx.drawImage(img, sx, sy, sWidth, sHeight, currentX, currentY, photoW, photoH);
                 ctx.strokeRect(currentX, currentY, photoW, photoH);
-
-                ctx.fillStyle = activeConfig.text;
-                ctx.beginPath();
-                ctx.arc(currentX + photoW - 35, currentY + photoH - 35, 20, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 20px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(`${idx + 1}`, currentX + photoW - 35, currentY + photoH - 35);
+                // 사진 번호 없음
             });
 
-            const footerY = cHeight - 130;
+            // 사진 하단과 문구 사이 여백 확보 (startY + 2*photoH + gapY + 여백)
+            const footerY = startY + 2 * photoH + gapY + 80;
+
             let brandTitle = "⚡ 2026 SPORTS DAY ⚡";
             if (activeEmblem === 'victory') {
                 brandTitle = "🔥 VICTORY LAP 🔥";
@@ -633,9 +640,9 @@
             ctx.textBaseline = 'alphabetic';
             ctx.fillText(brandTitle, cWidth / 2, footerY);
 
-            ctx.fillStyle = '#475569';
+            ctx.fillStyle = '#64748b';
             ctx.font = 'bold 26px sans-serif';
-            ctx.fillText('🏅 Gochang Middle School 🏅', cWidth / 2, footerY + 58);
+            ctx.fillText('Gochang Middle School', cWidth / 2, footerY + 56);
 
             resultSection.classList.remove('hidden');
             setTimeout(() => {
