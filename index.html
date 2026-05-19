@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 체육대회 인생4컷</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <!-- Google Fonts Inter, Black Han Sans & Noto Sans KR -->
+    <link href="[https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Inter:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap](https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Inter:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap)" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'Inter', 'sans-serif'],
+                        sports: ['Black Han Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        sportsGreen: '#10b981',
+                        sportsRed: '#ef4444',
+                        sportsBlue: '#3b82f6',
+                        sportsNavy: '#0f172a',
+                        sportsGold: '#fbbf24',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Pulse Animation for Recording */
+        @keyframes pulse-red {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+        .animate-pulse-red {
+            animation: pulse-red 1.5s infinite;
+        }
+        /* Photo Grid transition */
+        .photo-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col items-center justify-between antialiased selection:bg-emerald-500 selection:text-white">
+
+    <!-- App Header (Bright Mode) -->
+    <header class="w-full max-w-md px-6 pt-6 pb-4 text-center border-b border-slate-100 bg-white/90 backdrop-blur sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center justify-center space-x-2">
+            <span class="text-3xl animate-bounce">🏅</span>
+            <h1 class="font-sports text-2xl tracking-wide bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500 bg-clip-text text-transparent">
+                2026 체육대회 인생4컷
+            </h1>
+        </div>
+        <p class="text-xs text-slate-500 mt-1 font-bold tracking-wider uppercase">Sports Day 2x2 Photo booth</p>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-md px-4 py-6 flex-grow flex flex-col justify-start space-y-6">
+
+        <!-- Step 1: 정보 입력 및 대시보드 -->
+        <section id="step-info" class="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm space-y-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-sm">1</div>
+                <h2 class="font-bold text-base text-slate-700">정보 입력 <span class="text-xs text-slate-400 font-normal">(파일명 저장용)</span></h2>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">학번 (5자리)</label>
+                    <input type="text" id="studentId" placeholder="예: 10421" maxlength="5"
+                           class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-center font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">이름</label>
+                    <input type="text" id="studentName" placeholder="예: 김체육" maxlength="8"
+                           class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-center">
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 2: 카메라 영역 (8회 촬영) -->
+        <section class="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-sm">2</div>
+                    <h2 class="font-bold text-base text-slate-700">사진을 촬영하세요 <span class="text-xs text-slate-400 font-normal">(8번 촬영 가능)</span></h2>
+                </div>
+                <span class="text-xs font-bold px-2 py-1 bg-slate-100 rounded-lg text-amber-600" id="photoCountBadge">0 / 8</span>
+            </div>
+
+            <!-- 카메라 뷰파인더 -->
+            <div class="relative aspect-[4/3] bg-slate-900 rounded-xl overflow-hidden border border-slate-100 group shadow-inner">
+                <!-- 1. Real Webcam Video Stream -->
+                <video id="video" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
+                
+                <!-- 2. WebCam Fallback/Mock Screen -->
+                <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 text-center p-6 space-y-3">
+                    <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center border border-slate-200 text-slate-400 text-2xl animate-pulse shadow-sm">
+                        📸
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-600">카메라가 비활성화되었거나 프리뷰 환경입니다.</p>
+                        <p class="text-[10px] text-slate-400 mt-1 max-w-[280px] mx-auto">기기의 전면 카메라를 사용하거나 셔터를 눌러 간이 촬영 테스트를 진행할 수 있습니다.</p>
+                    </div>
+                </div>
+
+                <!-- 촬영 대기 오버레이 -->
+                <div id="shutter-flash" class="absolute inset-0 bg-white opacity-0 transition-opacity pointer-events-none z-20"></div>
+                
+                <!-- 카운트다운 오버레이 -->
+                <div id="countdown-overlay" class="absolute inset-0 flex items-center justify-center bg-black/60 text-white font-sports text-8xl hidden z-10">
+                    3
+                </div>
+            </div>
+
+            <!-- 촬영 컨트롤러 -->
+            <div class="space-y-2">
+                <div class="flex space-x-2">
+                    <button id="btn-shoot" onclick="startCaptureSequence()" class="flex-1 py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-sm flex items-center justify-center space-x-2 shadow-md transition-all active:scale-95">
+                        <span class="w-3 h-3 bg-white rounded-full animate-pulse-red"></span>
+                        <span>셔터 누르기 (자동촬영)</span>
+                    </button>
+                    <button onclick="resetCapturedPhotos()" class="px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-rose-500 font-bold rounded-xl text-sm border border-slate-200 transition-all active:scale-95">
+                        초기화 🔄
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 3: 촬영된 이미지 목록 및 4장 선택 (크게 보기 최적화) -->
+        <section class="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">3</div>
+                    <h2 class="font-bold text-base text-slate-700">인생샷 4장 선택하기 <span class="text-xs text-slate-400 font-normal">(크게 보기 지원)</span></h2>
+                </div>
+                <span class="text-xs font-bold px-2 py-1 bg-slate-100 rounded-lg text-blue-600" id="selectionCountBadge">0 / 4</span>
+            </div>
+
+            <!-- 촬영 및 업로드된 썸네일 그리드 (2열로 크게 확대 조정) -->
+            <div id="thumbnail-grid" class="grid grid-cols-2 gap-3 min-h-[160px] p-2 bg-slate-50 rounded-xl border border-slate-200">
+                <div class="col-span-2 flex items-center justify-center text-slate-400 text-xs py-14 text-center">
+                    상단에서 사진을 촬영하면<br>선택할 수 있는 큰 사진 리스트가 여기에 나타납니다.
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 4: 체육대회 맞춤 프레임 & 테마 지정 (밝은 6종 배경) -->
+        <section class="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm space-y-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-sm">4</div>
+                <h2 class="font-bold text-base text-slate-700">테마 프레임 지정 (밝은 배경 6종)</h2>
+            </div>
+
+            <!-- 배경색 테마 칩 -->
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-400">프레임 배경 디자인 선택</label>
+                <div class="grid grid-cols-3 gap-2" id="theme-selector">
+                    <!-- 청춘 스카이 블루 -->
+                    <button onclick="selectTheme('sky', this)" class="theme-btn relative p-3 rounded-xl bg-sky-50 border-2 border-sky-400 text-sky-700 font-bold text-xs text-center flex flex-col items-center justify-center space-y-1">
+                        <span class="w-4 h-4 rounded-full bg-sky-300"></span>
+                        <span>청춘 블루</span>
+                    </button>
+                    <!-- 에너지 연두 그린 -->
+                    <button onclick="selectTheme('green', this)" class="theme-btn relative p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 font-bold text-xs text-center flex flex-col items-center justify-center space-y-1">
+                        <span class="w-4 h-4 rounded-full bg-emerald-300"></span>
+                        <span>에너지 그린</span>
+                    </button>
+                    <!-- 활기찬 비타민 옐로우 -->
+                    <button onclick="selectTheme('yellow', this)" class="theme-btn relative p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 font-bold text-xs text-center flex flex-col items-center justify-center space-y-1">
+                        <span class="w-4 h-4 rounded-full bg-amber-300"></span>
+                        <span>빅토리 황금</span>
+                    </button>
+                    <!-- 러블리 응원석 핑크 -->
+                    <button onclick="selectTheme('pink', this)" class="theme-btn relative p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 font-bold text-xs text-center flex flex-col items-center justify-center space-y-1">
+                        <span class="w-4 h-4 rounded-full bg-rose-300"></span>
+                        <span>러블리 핑크</span>
+                    </button>
+                    <!-- 트랙 살구 오렌지 -->
+                    <button onclick="selectTheme('orange', this)" class="theme-btn relative p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 font-bold text-xs text-center flex flex-col items-center justify-center space-y-1">
+                        <span class="w-4 h-4 rounded-full bg-orange-300"></span>
+                        <span>액티브 주황</span>
+                    </button>
+                    <!-- 깔끔한 스포티 화이트 -->
+                    <button onclick="selectTheme('white', this)" class="theme-btn relative p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 font-bold text-xs text-center flex flex-col items-center justify-center space-y-1">
+                        <span class="w-4 h-4 rounded-full bg-slate-100 border border-slate-300"></span>
+                        <span>클래식 화이트</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 하단 앰블럼/스티커 디자인 선택 -->
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-400">하단 문구 스타일</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setEmblemStyle('championship')" id="emblem-championship" class="emblem-btn p-2 rounded-lg bg-slate-50 text-slate-700 border border-emerald-500 text-xs font-bold text-center shadow-sm">
+                        🏆 CHAMPION
+                    </button>
+                    <button onclick="setEmblemStyle('victory')" id="emblem-victory" class="emblem-btn p-2 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 text-xs font-bold text-center">
+                        🔥 VICTORY 2026
+                    </button>
+                    <button onclick="setEmblemStyle('sports')" id="emblem-sports" class="emblem-btn p-2 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 text-xs font-bold text-center">
+                        🏃‍♂️ SPORTS DAY
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 합성하기 큰 버튼 -->
+        <button onclick="renderFinalCollage()" id="btn-generate" class="w-full py-4 bg-gradient-to-r from-emerald-400 via-teal-500 to-sky-500 hover:opacity-95 disabled:opacity-30 disabled:pointer-events-none text-white font-sports tracking-widest text-lg rounded-2xl shadow-md transition-all transform active:scale-95" disabled>
+            ⚡ 인생 2x2 4컷 콜라주 생성하기 ⚡
+        </button>
+
+        <!-- 결과물 미리보기 / 저장 영역 -->
+        <section id="result-section" class="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm space-y-4 hidden transition-all">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-sm">5</div>
+                <h2 class="font-bold text-base text-slate-700">완성된 인생4컷 이미지 (2x2 격자)</h2>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="flex justify-center bg-slate-100 p-4 rounded-xl border border-slate-200">
+                <canvas id="four-cut-canvas" class="max-w-full rounded-lg shadow-xl border border-slate-200"></canvas>
+            </div>
+
+            <div class="space-y-2">
+                <button onclick="downloadFourCut()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-sm flex items-center justify-center space-x-2 transition-colors shadow-md">
+                    <span>📥 이미지 파일로 기기에 저장</span>
+                </button>
+                <p class="text-[10px] text-slate-400 text-center font-medium">
+                    ※ 스마트폰 환경에 따라 다운로드가 차단될 경우, 위 이미지를 길게 누르면 갤러리에 직접 저장할 수 있습니다.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer (Bright Mode) -->
+    <footer class="w-full max-w-md py-6 text-center text-[10px] text-slate-400 border-t border-slate-100 bg-white">
+        <p>© 2026 Sports Festival Life4Cut Creator. All Rights Reserved.</p>
+        <p class="mt-1 font-semibold">Designed for High Performance & Pure Fun.</p>
+    </footer>
+
+    <!-- Custom Toast Notification System -->
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xl z-50 pointer-events-none opacity-0 transition-opacity duration-300">
+        메시지 영역입니다.
+    </div>
+
+    <!-- Application Logic Script -->
+    <script>
+        const video = document.getElementById('video');
+        const cameraPlaceholder = document.getElementById('camera-placeholder');
+        const thumbnailGrid = document.getElementById('thumbnail-grid');
+        const photoCountBadge = document.getElementById('photoCountBadge');
+        const selectionCountBadge = document.getElementById('selectionCountBadge');
+        const btnGenerate = document.getElementById('btn-generate');
+        const resultSection = document.getElementById('result-section');
+        const canvas = document.getElementById('four-cut-canvas');
+        const shutterFlash = document.getElementById('shutter-flash');
+        const countdownOverlay = document.getElementById('countdown-overlay');
+
+        // State variables
+        let capturedPhotos = []; // Max 8 photos (HTMLImageElement)
+        let selectedIndices = []; // Selected indices for the final collage (Max 4)
+        let activeTheme = 'sky'; // Default: sky blue
+        let activeEmblem = 'championship'; // Default emblem style
+        let stream = null;
+
+        // Bright Themes specifications (6 bright, athletic backdrops)
+        const themes = {
+            sky: { name: '청춘 블루', bg: '#f0f9ff', text: '#0369a1', border: '#bae6fd', stripe: '#e0f2fe' },
+            green: { name: '에너지 그린', bg: '#f0fdf4', text: '#166534', border: '#bbf7d0', stripe: '#dcfce7' },
+            yellow: { name: '빅토리 황금', bg: '#fefce8', text: '#854d0e', border: '#fef08a', stripe: '#fef9c3' },
+            pink: { name: '러블리 핑크', bg: '#fdf2f8', text: '#9d174d', border: '#fbcfe8', stripe: '#fce7f3' },
+            orange: { name: '액티브 주황', bg: '#fff7ed', text: '#9a3412', border: '#fed7aa', stripe: '#ffedd5' },
+            white: { name: '클래식 화이트', bg: '#ffffff', text: '#334155', border: '#cbd5e1', stripe: '#f1f5f9' }
+        };
+
+        // Initialize Camera on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initCamera();
+        });
+
+        // Camera setup logic
+        async function initCamera() {
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: "user",
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                video.classList.remove('hidden');
+                cameraPlaceholder.classList.add('hidden');
+            } catch (err) {
+                console.warn("Camera initialization failed, standard fallback active: ", err);
+                video.classList.add('hidden');
+                cameraPlaceholder.classList.remove('hidden');
+            }
+        }
+
+        // Custom Toast System
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 3000);
+        }
+
+        // Automated Shutter Countdown
+        function startCaptureSequence() {
+            if (capturedPhotos.length >= 8) {
+                showToast("📸 이미 8장의 촬영을 마쳤습니다. 필요하면 초기화 후 다시 촬영해주세요!");
+                return;
+            }
+
+            let count = 3;
+            countdownOverlay.classList.remove('hidden');
+            countdownOverlay.innerText = count;
+
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownOverlay.innerText = count;
+                } else {
+                    clearInterval(interval);
+                    countdownOverlay.classList.add('hidden');
+                    shutterAction();
+                }
+            }, 800);
+        }
+
+        // Trigger capture
+        function shutterAction() {
+            shutterFlash.style.opacity = '1';
+            setTimeout(() => shutterFlash.style.opacity = '0', 150);
+
+            if (stream && video.readyState === video.HAVE_ENOUGH_DATA) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = video.videoWidth;
+                tempCanvas.height = video.videoHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                tempCtx.translate(tempCanvas.width, 0);
+                tempCtx.scale(-1, 1);
+                tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+                
+                const img = new Image();
+                img.onload = () => {
+                    addCapturedPhoto(img);
+                };
+                img.src = tempCanvas.toDataURL('image/png');
+            } else {
+                createSingleMockPhoto();
+            }
+        }
+
+        // Add Photo to list
+        function addCapturedPhoto(imgElement) {
+            if (capturedPhotos.length >= 8) return;
+            capturedPhotos.push(imgElement);
+            photoCountBadge.innerText = `${capturedPhotos.length} / 8`;
+            updateThumbnailGrid();
+        }
+
+        // Shoot fallback simulated photo
+        function createSingleMockPhoto() {
+            const idx = capturedPhotos.length;
+            const themesData = [
+                ['#059669', '#34d399', '✨ MATCH SHOT'],
+                ['#2563eb', '#60a5fa', '🏃 PLAY ACTIVE'],
+                ['#dc2626', '#fca5a5', '🏅 WINNER RUN'],
+                ['#d97706', '#fcd34d', '🔥 HOT FIELD'],
+                ['#7c3aed', '#a78bfa', '⚡ POWER STRIKER'],
+                ['#0891b2', '#22d3ee', '💨 SPEED RACER'],
+                ['#db2777', '#f472b6', '👟 HIGH JUMP'],
+                ['#475569', '#94a3b8', '🤝 TEAM ENERGY']
+            ];
+            const activeSet = themesData[idx] || ['#10b981', '#3b82f6', '🔥 SPORTS'];
+
+            const canvasMock = document.createElement('canvas');
+            canvasMock.width = 480;
+            canvasMock.height = 600; // Vertical height updated
+            const ctxMock = canvasMock.getContext('2d');
+            
+            const grad = ctxMock.createLinearGradient(0, 0, 480, 600);
+            grad.addColorStop(0, activeSet[0]);
+            grad.addColorStop(1, activeSet[1]);
+            ctxMock.fillStyle = grad;
+            ctxMock.fillRect(0, 0, 480, 600);
+
+            ctxMock.fillStyle = '#ffffff';
+            ctxMock.font = 'bold 36px sans-serif';
+            ctxMock.textAlign = 'center';
+            ctxMock.fillText(activeSet[2], 240, 280);
+
+            ctxMock.font = '18px monospace';
+            ctxMock.fillText(`VIRTUAL PHOTO NO. ${idx + 1}`, 240, 340);
+
+            const img = new Image();
+            img.onload = () => {
+                addCapturedPhoto(img);
+            };
+            img.src = canvasMock.toDataURL('image/png');
+        }
+
+        // Reset system
+        function resetCapturedPhotos() {
+            capturedPhotos = [];
+            selectedIndices = [];
+            photoCountBadge.innerText = "0 / 8";
+            selectionCountBadge.innerText = "0 / 4";
+            btnGenerate.disabled = true;
+            resultSection.classList.add('hidden');
+            updateThumbnailGrid();
+            showToast("기존 데이터가 완전히 정리되었습니다.");
+        }
+
+        // Refresh thumbnail selector layout (Grid-cols-2 for massive photo preview)
+        function updateThumbnailGrid() {
+            thumbnailGrid.innerHTML = '';
+            
+            if (capturedPhotos.length === 0) {
+                thumbnailGrid.innerHTML = `
+                    <div class="col-span-2 flex items-center justify-center text-slate-400 text-xs py-14 text-center">
+                        상단에서 사진을 촬영하면<br>선택할 수 있는 큰 사진 리스트가 여기에 나타납니다.
+                    </div>
+                `;
+                return;
+            }
+
+            capturedPhotos.forEach((img, index) => {
+                const wrapper = document.createElement('div');
+                // Updated to vertical rectangular aspect-[4/5] to view vertical cards much larger
+                wrapper.className = "photo-card relative aspect-[4/5] rounded-xl overflow-hidden border-2 cursor-pointer bg-slate-200 shadow-md group transition-all";
+                
+                const selectedPosition = selectedIndices.indexOf(index);
+                if (selectedPosition !== -1) {
+                    wrapper.classList.add('border-emerald-500', 'scale-[0.98]', 'ring-4', 'ring-emerald-500/20');
+                } else {
+                    wrapper.classList.add('border-slate-300');
+                }
+
+                const displayImg = document.createElement('img');
+                displayImg.src = img.src;
+                displayImg.className = "w-full h-full object-cover";
+                wrapper.appendChild(displayImg);
+
+                // Counter badge overlay
+                if (selectedPosition !== -1) {
+                    const selectorBadge = document.createElement('div');
+                    selectorBadge.className = "absolute top-2 right-2 w-8 h-8 rounded-full bg-emerald-500 text-white font-extrabold flex items-center justify-center text-sm shadow-lg z-10 scale-100";
+                    selectorBadge.innerText = selectedPosition + 1;
+                    wrapper.appendChild(selectorBadge);
+                }
+
+                wrapper.addEventListener('click', () => togglePhotoSelection(index));
+                thumbnailGrid.appendChild(wrapper);
+            });
+        }
+
+        // Add/Remove selection indices
+        function togglePhotoSelection(index) {
+            const alreadySelected = selectedIndices.indexOf(index);
+            if (alreadySelected !== -1) {
+                selectedIndices.splice(alreadySelected, 1);
+            } else {
+                if (selectedIndices.length >= 4) {
+                    showToast("🛑 최대 4장의 사진만 최종 인생컷으로 탑재할 수 있습니다.");
+                    return;
+                }
+                selectedIndices.push(index);
+            }
+            selectionCountBadge.innerText = `${selectedIndices.length} / 4`;
+            updateThumbnailGrid();
+            
+            btnGenerate.disabled = selectedIndices.length !== 4;
+        }
+
+        // Select Frame Styling
+        function selectTheme(themeName, element) {
+            activeTheme = themeName;
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('border-sky-400', 'bg-sky-50', 'text-sky-700');
+                btn.classList.add('border-slate-200', 'bg-slate-50', 'text-slate-500');
+            });
+            element.classList.remove('border-slate-200', 'bg-slate-50', 'text-slate-500');
+            element.classList.add('border-sky-400', 'bg-sky-50', 'text-sky-700');
+            
+            if (!resultSection.classList.contains('hidden')) {
+                renderFinalCollage();
+            }
+        }
+
+        // Emblem styling handler
+        function setEmblemStyle(emblemType) {
+            activeEmblem = emblemType;
+            document.querySelectorAll('.emblem-btn').forEach(btn => {
+                btn.classList.remove('border-emerald-500', 'text-slate-700');
+                btn.classList.add('border-slate-200', 'text-slate-500');
+            });
+            document.getElementById(`emblem-${emblemType}`).classList.remove('border-slate-200', 'text-slate-500');
+            document.getElementById(`emblem-${emblemType}`).classList.add('border-emerald-500', 'text-slate-700');
+            
+            if (!resultSection.classList.contains('hidden')) {
+                renderFinalCollage();
+            }
+        }
+
+        // Compile 4 Cuts collage (2x2 Grid Layout optimized with minimal bottom spacing and simple borders)
+        function renderFinalCollage() {
+            if (selectedIndices.length !== 4) return;
+
+            const activeConfig = themes[activeTheme];
+
+            // Clean 2x2 Portrait Canvas Size (1000 x 1420 px)
+            const cWidth = 1000;
+            const cHeight = 1420;
+            canvas.width = cWidth;
+            canvas.height = cHeight;
+            const ctx = canvas.getContext('2d');
+
+            // 1. Solid Frame Base color fill
+            ctx.fillStyle = activeConfig.bg;
+            ctx.fillRect(0, 0, cWidth, cHeight);
+
+            // 2. Simple & Clean Solid outer frame line
+            ctx.strokeStyle = activeConfig.text;
+            ctx.lineWidth = 16;
+            ctx.strokeRect(8, 8, cWidth - 16, cHeight - 16);
+
+            // 3. 2x2 Photo Positioning (Rectangular aspect ratio 4:5 instead of horizontal squares)
+            const photoW = 440;
+            const photoH = 550; // Vertically long photo aspect
+            const startX = 40;
+            const startY = 100; // Simple gap from top edge
+            const gapX = 40;
+            const gapY = 40;
+
+            selectedIndices.forEach((photoIndex, idx) => {
+                const img = capturedPhotos[photoIndex];
+                
+                const col = idx % 2;
+                const row = Math.floor(idx / 2);
+                
+                const currentX = startX + col * (photoW + gapX);
+                const currentY = startY + row * (photoH + gapY);
+
+                // Draw image directly with a simple thin boundary line
+                ctx.strokeStyle = activeConfig.text;
+                ctx.lineWidth = 4;
+                
+                // Crop & draw logic (Center crop tailored to fit 4:5 vertical frames)
+                const imgAspect = img.width / img.height;
+                const targetAspect = photoW / photoH;
+                let sx, sy, sWidth, sHeight;
+
+                if (imgAspect > targetAspect) {
+                    sHeight = img.height;
+                    sWidth = img.height * targetAspect;
+                    sx = (img.width - sWidth) / 2;
+                    sy = 0;
+                } else {
+                    sWidth = img.width;
+                    sHeight = img.width / targetAspect;
+                    sx = 0;
+                    sy = (img.height - sHeight) / 2;
+                }
+
+                ctx.drawImage(img, sx, sy, sWidth, sHeight, currentX, currentY, photoW, photoH);
+                ctx.strokeRect(currentX, currentY, photoW, photoH);
+
+                // Premium index number badge in bottom-right corner of each photo
+                ctx.fillStyle = activeConfig.text;
+                ctx.beginPath();
+                ctx.arc(currentX + photoW - 35, currentY + photoH - 35, 20, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${idx + 1}`, currentX + photoW - 35, currentY + photoH - 35);
+            });
+
+            // 4. Branding & Emblem (Tightened margins inside the minimal bottom container)
+            const footerY = cHeight - 130;
+            
+            let brandTitle = "2026 SPORTS DAY";
+            let slogan = "🏅 뜨거웠던 우리들의 체육대회 🏅";
+            
+            if (activeEmblem === 'victory') {
+                brandTitle = "VICTORY LAP";
+                slogan = "🔥 끝까지 달리는 우리가 챔피언 🔥";
+            } else if (activeEmblem === 'sports') {
+                brandTitle = "YOUTH & SPEED";
+                slogan = "⚡ 뜨거운 땀방울, 최고의 레이스 ⚡";
+            }
+
+            // Draw clean typography
+            ctx.fillStyle = activeConfig.text;
+            ctx.font = '800 52px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillText(brandTitle, cWidth / 2, footerY);
+
+            // Draw slogan text beautifully below
+            ctx.fillStyle = '#475569';
+            ctx.font = 'bold 22px sans-serif';
+            ctx.fillText(slogan, cWidth / 2, footerY + 50);
+
+            resultSection.classList.remove('hidden');
+            setTimeout(() => {
+                resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+            
+            showToast("🎉 인생 2x2 4컷 조합이 성공적으로 생성되었습니다!");
+        }
+
+        // Download handler
+        function downloadFourCut() {
+            const studentId = document.getElementById('studentId').value.trim() || '00000';
+            const studentName = document.getElementById('studentName').value.trim() || '인생4컷';
+            const filename = `${studentId}_${studentName}_2026체육대회.png`;
+
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    showToast("이미지 렌더링에 오류가 발생했습니다.");
+                    return;
+                }
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = url;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+    </script>
+</body>
+</html>
+
