@@ -117,7 +117,7 @@
         <section id="step-info" class="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm space-y-4">
             <div class="flex items-center space-x-3">
                 <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-sm">1</div>
-                <h2 class="font-bold text-base text-slate-700">정보 입력 <span class="text-xs text-slate-400 font-normal">(파일명 저장용)</span></h2>
+                <h2 class="font-bold text-base text-slate-700">정보 입력 <span class="text-xs text-slate-400 font-normal">(사진 받을 학생 정보)</span></h2>
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -228,13 +228,13 @@
                 <label class="block text-xs font-bold text-slate-400">하단 문구 스타일</label>
                 <div class="grid grid-cols-3 gap-2">
                     <button onclick="setEmblemStyle('championship')" id="emblem-championship" class="emblem-btn p-2 rounded-lg bg-slate-50 text-slate-700 border border-emerald-500 text-xs font-bold text-center shadow-sm">
-                        🏆 CHAMPION
+                        ⚡ SPORTS DAY
                     </button>
                     <button onclick="setEmblemStyle('victory')" id="emblem-victory" class="emblem-btn p-2 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 text-xs font-bold text-center">
-                        🔥 VICTORY 2026
+                        🏆 CHAMPION
                     </button>
                     <button onclick="setEmblemStyle('sports')" id="emblem-sports" class="emblem-btn p-2 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 text-xs font-bold text-center">
-                        🏃‍♂️ SPORTS DAY
+                        🥇 Final Winner
                     </button>
                 </div>
             </div>
@@ -629,9 +629,9 @@
 
             let brandTitle = "⚡ 2026 SPORTS DAY ⚡";
             if (activeEmblem === 'victory') {
-                brandTitle = "🔥 VICTORY LAP 🔥";
+                brandTitle = "🏆 2026 CHAMPION 🏆";
             } else if (activeEmblem === 'sports') {
-                brandTitle = "🏃 YOUTH & SPEED 🏃";
+                brandTitle = "🥇 2026 Final Winner 🥇";
             }
 
             ctx.fillStyle = activeConfig.text;
@@ -654,7 +654,7 @@
         function downloadFourCut() {
             const studentId = document.getElementById('studentId').value.trim() || '00000';
             const studentName = document.getElementById('studentName').value.trim() || '인생4컷';
-            const filename = `${studentId}_${studentName}_2026체육대회.png`;
+            const filename = `2026체육대회_${studentId}_${studentName}.png`;
             canvas.toBlob((blob) => {
                 if (!blob) { showToast("이미지 렌더링에 오류가 발생했습니다."); return; }
                 const url = URL.createObjectURL(blob);
