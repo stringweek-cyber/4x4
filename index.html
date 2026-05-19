@@ -37,6 +37,66 @@
         .photo-card {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        /* 전체화면 촬영 오버레이 */
+        #fullscreen-camera {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 9999;
+            flex-direction: column;
+        }
+        #fullscreen-camera.active { display: flex; }
+        #fullscreen-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            flex: 1;
+        }
+        #fullscreen-flash {
+            position: absolute;
+            inset: 0;
+            background: #fff;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+        }
+        #fullscreen-countdown {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.5);
+            color: #fff;
+            font-size: 120px;
+            font-weight: 900;
+        }
+        #fullscreen-status {
+            position: absolute;
+            top: 24px;
+            left: 0; right: 0;
+            text-align: center;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+        }
+        #fullscreen-close {
+            position: absolute;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 32px;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 999px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col items-center justify-between antialiased selection:bg-emerald-500 selection:text-white">
@@ -78,9 +138,9 @@
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-sm">2</div>
-                    <h2 class="font-bold text-base text-slate-700">사진을 촬영하세요 <span class="text-xs text-slate-400 font-normal">(8번 촬영 가능)</span></h2>
+                    <h2 class="font-bold text-base text-slate-700">사진을 촬영하세요 <span class="text-xs text-slate-400 font-normal">(4초 간격 6번 자동촬영)</span></h2>
                 </div>
-                <span class="text-xs font-bold px-2 py-1 bg-slate-100 rounded-lg text-amber-600" id="photoCountBadge">0 / 8</span>
+                <span class="text-xs font-bold px-2 py-1 bg-slate-100 rounded-lg text-amber-600" id="photoCountBadge">0 / 6</span>
             </div>
 
             <div class="relative aspect-[4/3] bg-slate-900 rounded-xl overflow-hidden border border-slate-100 group shadow-inner">
@@ -210,6 +270,15 @@
         <p class="mt-1 font-semibold">Designed for High Performance & Pure Fun.</p>
     </footer>
 
+    <!-- 전체화면 촬영 오버레이 -->
+    <div id="fullscreen-camera">
+        <video id="fullscreen-video" autoplay playsinline muted></video>
+        <div id="fullscreen-flash"></div>
+        <div id="fullscreen-countdown" class="hidden">3</div>
+        <div id="fullscreen-status">📸 준비 중...</div>
+        <button id="fullscreen-close" onclick="closeFullscreenCamera()">✕ 촬영 중단</button>
+    </div>
+
     <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xl z-50 pointer-events-none opacity-0 transition-opacity duration-300">
         메시지 영역입니다.
     </div>
@@ -275,38 +344,89 @@
             setTimeout(() => { toast.style.opacity = '0'; }, 3000);
         }
 
+        const MAX_SHOTS = 6;
+        const SHOT_INTERVAL = 4; // 초
+        const PREP_TIME = 5;     // 준비 시간(초)
+        let fsIntervalId = null;
+
+        // 전체화면 촬영 진입
         function startCaptureSequence() {
-            if (capturedPhotos.length >= 8) {
-                showToast("📸 이미 8장의 촬영을 마쳤습니다. 필요하면 초기화 후 다시 촬영해주세요!");
+            if (capturedPhotos.length >= MAX_SHOTS) {
+                showToast("📸 이미 6장의 촬영을 마쳤습니다. 필요하면 초기화 후 다시 촬영해주세요!");
                 return;
             }
-            let count = 3;
-            countdownOverlay.classList.remove('hidden');
-            countdownOverlay.innerText = count;
+            const fsCamera = document.getElementById('fullscreen-camera');
+            const fsVideo = document.getElementById('fullscreen-video');
+            fsCamera.classList.add('active');
+            if (stream) fsVideo.srcObject = stream;
+
+            // 5초 준비 카운트다운 후 촬영 시작
+            runPrepCountdown();
+        }
+
+        // 5초 준비 카운트다운
+        function runPrepCountdown() {
+            const fsCountdown = document.getElementById('fullscreen-countdown');
+            const fsStatus = document.getElementById('fullscreen-status');
+            fsStatus.innerText = '📷 준비하세요!';
+            fsCountdown.classList.remove('hidden');
+
+            let count = PREP_TIME;
+            fsCountdown.innerText = count;
+
             const interval = setInterval(() => {
                 count--;
                 if (count > 0) {
-                    countdownOverlay.innerText = count;
+                    fsCountdown.innerText = count;
                 } else {
                     clearInterval(interval);
-                    countdownOverlay.classList.add('hidden');
-                    shutterAction();
+                    fsCountdown.classList.add('hidden');
+                    // 준비 완료 → 첫 촬영 바로 실행 후 4초 간격 반복
+                    runShot();
+                    fsIntervalId = setInterval(() => {
+                        if (capturedPhotos.length >= MAX_SHOTS) {
+                            clearInterval(fsIntervalId);
+                            fsIntervalId = null;
+                            setTimeout(() => {
+                                closeFullscreenCamera();
+                                showToast("🎉 6장 촬영 완료! 최고의 4장을 선택해 보세요.");
+                            }, 600);
+                        } else {
+                            runShot();
+                        }
+                    }, SHOT_INTERVAL * 1000);
                 }
-            }, 800);
+            }, 1000);
+        }
+
+        // 1장 촬영 실행
+        function runShot() {
+            const fsStatus = document.getElementById('fullscreen-status');
+            fsStatus.innerText = `📸 ${capturedPhotos.length + 1} / ${MAX_SHOTS}`;
+            shutterAction();
+        }
+
+        // 전체화면 닫기
+        function closeFullscreenCamera() {
+            if (fsIntervalId) { clearInterval(fsIntervalId); fsIntervalId = null; }
+            const fsCamera = document.getElementById('fullscreen-camera');
+            fsCamera.classList.remove('active');
         }
 
         function shutterAction() {
-            shutterFlash.style.opacity = '1';
-            setTimeout(() => shutterFlash.style.opacity = '0', 150);
+            const fsFlash = document.getElementById('fullscreen-flash');
+            const fsVideo = document.getElementById('fullscreen-video');
+            fsFlash.style.opacity = '1';
+            setTimeout(() => fsFlash.style.opacity = '0', 150);
 
-            if (stream && video.readyState === video.HAVE_ENOUGH_DATA) {
+            if (stream && fsVideo.readyState === fsVideo.HAVE_ENOUGH_DATA) {
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = video.videoWidth;
-                tempCanvas.height = video.videoHeight;
+                tempCanvas.width = fsVideo.videoWidth;
+                tempCanvas.height = fsVideo.videoHeight;
                 const tempCtx = tempCanvas.getContext('2d');
                 tempCtx.translate(tempCanvas.width, 0);
                 tempCtx.scale(-1, 1);
-                tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+                tempCtx.drawImage(fsVideo, 0, 0, tempCanvas.width, tempCanvas.height);
                 const img = new Image();
                 img.onload = () => addCapturedPhoto(img);
                 img.src = tempCanvas.toDataURL('image/png');
@@ -316,9 +436,9 @@
         }
 
         function addCapturedPhoto(imgElement) {
-            if (capturedPhotos.length >= 8) return;
+            if (capturedPhotos.length >= MAX_SHOTS) return;
             capturedPhotos.push(imgElement);
-            photoCountBadge.innerText = `${capturedPhotos.length} / 8`;
+            photoCountBadge.innerText = `${capturedPhotos.length} / ${MAX_SHOTS}`;
             updateThumbnailGrid();
         }
 
@@ -356,9 +476,10 @@
         }
 
         function resetCapturedPhotos() {
+            closeFullscreenCamera();
             capturedPhotos = [];
             selectedIndices = [];
-            photoCountBadge.innerText = "0 / 8";
+            photoCountBadge.innerText = "0 / 6";
             selectionCountBadge.innerText = "0 / 4";
             btnGenerate.disabled = true;
             resultSection.classList.add('hidden');
@@ -499,14 +620,11 @@
             });
 
             const footerY = cHeight - 130;
-            let brandTitle = "2026 SPORTS DAY";
-            let slogan = "🏅 뜨거웠던 우리들의 체육대회 🏅";
+            let brandTitle = "⚡ 2026 SPORTS DAY ⚡";
             if (activeEmblem === 'victory') {
-                brandTitle = "VICTORY LAP";
-                slogan = "🔥 끝까지 달리는 우리가 챔피언 🔥";
+                brandTitle = "🔥 VICTORY LAP 🔥";
             } else if (activeEmblem === 'sports') {
-                brandTitle = "YOUTH & SPEED";
-                slogan = "⚡ 뜨거운 땀방울, 최고의 레이스 ⚡";
+                brandTitle = "🏃 YOUTH & SPEED 🏃";
             }
 
             ctx.fillStyle = activeConfig.text;
@@ -514,9 +632,10 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'alphabetic';
             ctx.fillText(brandTitle, cWidth / 2, footerY);
+
             ctx.fillStyle = '#475569';
-            ctx.font = 'bold 22px sans-serif';
-            ctx.fillText(slogan, cWidth / 2, footerY + 50);
+            ctx.font = 'bold 26px sans-serif';
+            ctx.fillText('🏅 Gochang Middle School 🏅', cWidth / 2, footerY + 58);
 
             resultSection.classList.remove('hidden');
             setTimeout(() => {
