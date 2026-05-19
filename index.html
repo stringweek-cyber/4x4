@@ -240,6 +240,15 @@
                     <button onclick="setEmblemStyle('sports')" id="emblem-sports" class="emblem-btn p-2 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 text-xs font-bold text-center">
                         🥇 Final Winner
                     </button>
+                    <button onclick="setEmblemStyle('ordinary')" id="emblem-ordinary" class="emblem-btn p-2 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 text-xs font-bold text-center">
+                        ✨ Ordinary but Special
+                    </button>
+                    <button onclick="setEmblemStyle('favorite')" id="emblem-favorite" class="emblem-btn p-2 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 text-xs font-bold text-center">
+                        🌟 My Favorite Day
+                    </button>
+                    <button onclick="setEmblemStyle('life4')" id="emblem-life4" class="emblem-btn p-2 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 text-xs font-bold text-center">
+                        📸 인생네컷
+                    </button>
                 </div>
             </div>
         </section>
@@ -702,6 +711,12 @@
                 brandTitle = "🏆 2026 CHAMPION 🏆";
             } else if (activeEmblem === 'sports') {
                 brandTitle = "🥇 2026 Final Winner 🥇";
+            } else if (activeEmblem === 'ordinary') {
+                brandTitle = "✨ Ordinary but Special ✨";
+            } else if (activeEmblem === 'favorite') {
+                brandTitle = "🌟 My Favorite Day 🌟";
+            } else if (activeEmblem === 'life4') {
+                brandTitle = "📸 인생네컷 📸";
             }
 
             ctx.fillStyle = activeConfig.text;
