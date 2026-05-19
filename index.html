@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026 체육대회 인생4컷</title>
+    <title>인생네컷</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Inter:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
     
@@ -53,6 +53,7 @@
             height: 100%;
             object-fit: cover;
             flex: 1;
+            transform: scaleX(-1);
         }
         #fullscreen-flash {
             position: absolute;
@@ -144,7 +145,7 @@
             </div>
 
             <div class="relative aspect-[4/3] bg-slate-900 rounded-xl overflow-hidden border border-slate-100 group shadow-inner">
-                <video id="video" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
+                <video id="video" autoplay playsinline muted class="w-full h-full object-cover hidden" style="transform: scaleX(-1);"></video>
                 <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 text-center p-6 space-y-3">
                     <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center border border-slate-200 text-slate-400 text-2xl animate-pulse shadow-sm">
                         📸
@@ -436,8 +437,6 @@
                 tempCanvas.width = fsVideo.videoWidth;
                 tempCanvas.height = fsVideo.videoHeight;
                 const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.translate(tempCanvas.width, 0);
-                tempCtx.scale(-1, 1);
                 tempCtx.drawImage(fsVideo, 0, 0, tempCanvas.width, tempCanvas.height);
                 const img = new Image();
                 img.onload = () => { addCapturedPhoto(img); if (callback) callback(); };
