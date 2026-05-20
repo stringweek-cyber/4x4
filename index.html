@@ -315,7 +315,6 @@
         let activeEmblem = 'championship';
         let stream = null;
 
-        // 소리 설정
         let soundOn = true;
         let audioCtx = null;
 
@@ -333,7 +332,6 @@
             showToast(soundOn ? '🔊 소리 켜짐' : '🔇 소리 꺼짐');
         }
 
-        // 띠 소리 (beep): freq Hz, duration 초
         function playBeep(freq, duration, delay = 0) {
             if (!soundOn) return;
             const ctx = getAudioCtx();
@@ -349,7 +347,6 @@
             osc.stop(ctx.currentTime + delay + duration);
         }
 
-        // 찰칵 소리: 짧은 노이즈 버스트
         function playShutter() {
             if (!soundOn) return;
             const ctx = getAudioCtx();
@@ -366,12 +363,13 @@
             source.start();
         }
 
-        // 카운트다운 띠 소리: 매초 띠 (count 숫자에서 호출)
-        function playCountBeep() {
-            playBeep(880, 0.12);
+        function playCountBeep() { playBeep(880, 0.12); }
+
+        function playStartChime() {
+            playBeep(880, 0.12, 0);
+            playBeep(1320, 0.2, 0.15);
         }
 
-        // 촬영 직전 마지막 띠 + 찰칵
         function playShutterSound() {
             playBeep(1200, 0.1);
             setTimeout(() => playShutter(), 120);
@@ -421,12 +419,11 @@
         }
 
         const MAX_SHOTS = 6;
-        const SHOT_INTERVAL = 4; // 초
-        const PREP_TIME = 5;     // 준비 시간(초)
+        const SHOT_INTERVAL = 4;
+        const PREP_TIME = 5;
         let fsIntervalId = null;
         let captureAborted = false;
 
-        // 전체화면 촬영 진입
         function startCaptureSequence() {
             if (capturedPhotos.length >= MAX_SHOTS) {
                 showToast("📸 이미 6장의 촬영을 마쳤습니다. 필요하면 초기화 후 다시 촬영해주세요!");
@@ -440,7 +437,6 @@
             runPrepCountdown();
         }
 
-        // 5초 준비 카운트다운 → 이후 매 촬영마다 4초 카운트다운
         function runPrepCountdown() {
             const fsCountdown = document.getElementById('fullscreen-countdown');
             const fsStatus = document.getElementById('fullscreen-status');
@@ -457,13 +453,18 @@
                     playCountBeep();
                 } else {
                     clearInterval(interval);
-                    fsCountdown.classList.add('hidden');
-                    runShotWithCountdown();
+                    // ▼ 변경: "시작" 표시 후 0.8초 뒤 촬영 진입
+                    fsCountdown.innerText = '시작';
+                    playStartChime();
+                    setTimeout(() => {
+                        if (captureAborted) return;
+                        fsCountdown.classList.add('hidden');
+                        runShotWithCountdown();
+                    }, 800);
                 }
             }, 1000);
         }
 
-        // 촬영 1회: 4→3→2→1 카운트다운 후 셔터, 재귀 반복
         function runShotWithCountdown() {
             if (captureAborted || capturedPhotos.length >= MAX_SHOTS) return;
             const fsCountdown = document.getElementById('fullscreen-countdown');
@@ -498,7 +499,6 @@
             }, 1000);
         }
 
-        // 전체화면 닫기
         function closeFullscreenCamera() {
             captureAborted = true;
             if (fsIntervalId) { clearInterval(fsIntervalId); fsIntervalId = null; }
@@ -661,15 +661,13 @@
             const startY = 80;
             const gapX = 40;
             const gapY = 50;
-            const cHeight = startY + 2 * photoH + gapY + 80 + 56 + 60; // 동적 높이
+            const cHeight = startY + 2 * photoH + gapY + 80 + 56 + 60;
             canvas.width = cWidth;
             canvas.height = cHeight;
             const ctx = canvas.getContext('2d');
 
             ctx.fillStyle = activeConfig.bg;
             ctx.fillRect(0, 0, cWidth, cHeight);
-
-            // 바깥 테두리 최소화 (1px)
             ctx.strokeStyle = activeConfig.border;
             ctx.lineWidth = 1;
             ctx.strokeRect(0.5, 0.5, cWidth - 1, cHeight - 1);
@@ -700,10 +698,8 @@
                 }
                 ctx.drawImage(img, sx, sy, sWidth, sHeight, currentX, currentY, photoW, photoH);
                 ctx.strokeRect(currentX, currentY, photoW, photoH);
-                // 사진 번호 없음
             });
 
-            // 사진 하단과 문구 사이 여백 확보 (startY + 2*photoH + gapY + 여백)
             const footerY = startY + 2 * photoH + gapY + 80;
 
             let brandTitle = "⚡ 2026 SPORTS DAY ⚡";
